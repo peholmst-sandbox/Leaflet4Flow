@@ -1,0 +1,52 @@
+<link rel="import" href="../polymer/polymer-element.html">
+<script src="../leaflet/1.3.3/dist/leaflet.js"></script>
+
+<dom-module id="leaflet-element">
+    <!-- TODO Importing CSS files like this is deprecated. Figure out the proper way to do this. -->
+    <link rel="import" type="css" href="../leaflet/1.3.3/dist/leaflet.css">
+    <template>
+        <style>
+            :host {
+                display: flex;
+                align-items: stretch;
+            }
+
+            #myMap {
+                height: 100%;
+                width: 100%;
+            }
+        </style>
+        <div id="myMap"></div>
+    </template>
+
+    <script>
+        class LeafletElement extends Polymer.Element {
+            static get is() {
+                return 'leaflet-element';
+            }
+
+            static get properties() {
+                return {
+                };
+            }
+
+            constructor() {
+                super();
+                this.layers = [];
+            }
+
+            ready() {
+                super.ready();
+                this.map = L.map(this.$.myMap);
+            }
+
+            addTileLayer(templateUrl, options = {}) {
+                var layer = L.tileLayer(templateUrl, options);
+                this.layers.push(layer);
+                layer.addTo(this.map);
+            }
+        }
+
+        window.customElements.define(LeafletElement.is, LeafletElement);
+    </script>
+</dom-module>
