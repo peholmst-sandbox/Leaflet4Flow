@@ -18,7 +18,10 @@ public class Leaflet extends Component implements HasSize {
 
     public <L extends Layer<L>> void addLayer(L layer) {
         Objects.requireNonNull(layer, "layer must not be null");
+        // TODO Either make Layer
+        // immutable (using the builder pattern for example) or make sure the setter methods update the UI after the layer has been added
         layers.add(layer.clone());
+        layer.addToElement(getElement());
     }
 
     public Stream<Layer<?>> getLayers() {

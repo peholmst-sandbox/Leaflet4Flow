@@ -27,6 +27,17 @@
 
             static get properties() {
                 return {
+                    center: {
+                        type: Object,
+                        value: {
+                            lat: 60.4524144,
+                            lng: 22.2995748
+                        }
+                    },
+                    zoom: {
+                        type: Number,
+                        value: 13
+                    }
                 };
             }
 
@@ -37,10 +48,14 @@
 
             ready() {
                 super.ready();
-                this.map = L.map(this.$.myMap);
+                this.map = L.map(this.$.myMap, {
+                    center: this.center,
+                    zoom: this.zoom
+                });
             }
 
             addTileLayer(templateUrl, options = {}) {
+                console.log("Adding tile layer " + templateUrl);
                 var layer = L.tileLayer(templateUrl, options);
                 this.layers.push(layer);
                 layer.addTo(this.map);

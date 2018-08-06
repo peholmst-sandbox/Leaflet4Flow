@@ -8,6 +8,9 @@ import elemental.json.JsonObject;
  */
 public class TileLayer extends GridLayer<TileLayer> {
 
+    private static final String JSON_PROPERTY_MIN_ZOOM_LEVEL = "minZoomLevel";
+    private static final String JSON_PROPERTY_MAX_ZOOM_LEVEL = "maxZoomLevel";
+
     private final URLTemplate urlTemplate;
 
     private int minZoomLevel = 0;
@@ -42,12 +45,13 @@ public class TileLayer extends GridLayer<TileLayer> {
     @Override
     protected JsonObject toJson() {
         var object = super.toJson();
-        // TODO continue here
+        object.put(JSON_PROPERTY_MIN_ZOOM_LEVEL, minZoomLevel);
+        object.put(JSON_PROPERTY_MAX_ZOOM_LEVEL, maxZoomLevel);
         return object;
     }
 
     @Override
     protected void addToElement(Element element) {
-        // TODO implement me
+        element.callFunction("addTileLayer", urlTemplate.getTemplate(), toJson());
     }
 }
