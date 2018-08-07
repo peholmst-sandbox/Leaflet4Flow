@@ -25,8 +25,42 @@
                 return 'leaflet-element';
             }
 
+            // TODO Need to recreate the map when some of the properties are changed
+
             static get properties() {
                 return {
+                    attributionControlVisible: {
+                        type: Boolean,
+                        value: true
+                    },
+                    zoomControlVisible: {
+                        type: Boolean,
+                        value: true
+                    },
+                    boxZoomEnabled: {
+                        type: Boolean,
+                        value: true
+                    },
+                    doubleClickZoomEnabled: {
+                        type: Boolean,
+                        value: true
+                    },
+                    doubleClickZoomMode: {
+                        type: String,
+                        value: "POINTER"
+                    },
+                    scrollWheelZoomEnabled: {
+                        type: Boolean,
+                        value: true
+                    },
+                    scrollWheelZoomMode: {
+                        type: String,
+                        value: "POINTER"
+                    },
+                    draggingEnabled: {
+                        type: Boolean,
+                        value: true
+                    },
                     center: {
                         type: Object,
                         value: {
@@ -36,9 +70,19 @@
                     },
                     zoom: {
                         type: Number,
-                        value: 13
+                        value: 10
                     }
                 };
+            }
+
+            static convertZoomMode(enabled, mode) {
+                if (!enabled) {
+                    return false;
+                } else if (mode === 'CENTER') {
+                    return 'center';
+                } else {
+                    return true;
+                }
             }
 
             constructor() {
@@ -49,6 +93,12 @@
             ready() {
                 super.ready();
                 this.map = L.map(this.$.myMap, {
+                    attributionControl: this.attributionControlVisible,
+                    zoomControl: this.zoomControlVisible,
+                    boxZoom: this.boxZoomEnabled,
+                    doubleClickZoom: LeafletElement.convertZoomMode(this.doubleClickZoomEnabled, this.doubleClickZoomMode),
+                    scrollWheelZoom: LeafletElement.convertZoomMode(this.scrollWheelZoomEnabled, this.scrollWheelZoomMode),
+                    dragging: this.draggingEnabled,
                     center: this.center,
                     zoom: this.zoom
                 });
