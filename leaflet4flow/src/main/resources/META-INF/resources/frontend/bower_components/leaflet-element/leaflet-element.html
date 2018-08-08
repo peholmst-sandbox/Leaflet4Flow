@@ -25,57 +25,50 @@
                 return 'leaflet-element';
             }
 
-            // TODO Need to recreate the map when some of the properties are changed
-
             static get properties() {
                 return {
-                    attributionControlVisible: {
-                        type: Boolean,
-                        value: true
-                    },
-                    zoomControlVisible: {
-                        type: Boolean,
-                        value: true
-                    },
-                    boxZoomEnabled: {
-                        type: Boolean,
-                        value: true
-                    },
-                    doubleClickZoomEnabled: {
-                        type: Boolean,
-                        value: true
-                    },
-                    doubleClickZoomMode: {
-                        type: String,
-                        value: "POINTER"
-                    },
-                    scrollWheelZoomEnabled: {
-                        type: Boolean,
-                        value: true
-                    },
-                    scrollWheelZoomMode: {
-                        type: String,
-                        value: "POINTER"
-                    },
-                    draggingEnabled: {
-                        type: Boolean,
-                        value: true
-                    },
+                    attributionControlVisible: {type: Boolean, value: true},
+                    zoomControlVisible: {type: Boolean, value: true},
+                    boxZoomEnabled: {type: Boolean, value: true},
+                    doubleClickZoomEnabled: {type: Boolean, value: true},
+                    doubleClickZoomMode: {type: String, value: "POINTER"},
+                    scrollWheelZoomEnabled: {type: Boolean, value: true},
+                    scrollWheelZoomMode: {type: String, value: "POINTER"},
+                    draggingEnabled: {type: Boolean, value: true},
                     center: {
                         type: Object,
                         value: {
                             lat: 60.4524144,
                             lng: 22.2995748
+                        },
+                        observer(newValue, oldValue) {
+                            if (this.map !== null && !this.map.getCenter().equals(newValue)) {
+                                console.log(`Changing center to ${JSON.stringify(newValue)}`);
+                                this.map.panTo(newValue);
+                            }
                         }
                     },
                     zoom: {
                         type: Number,
-                        value: 10
+                        value: 10,
+                        observer(newValue, oldValue) {
+                            if (this.map !== null && this.map.getZoom() !== newValue) {
+                                console.log(`Changing zoom level to ${newValue}`);
+                                this.map.setZoom(newValue);
+                            }
+                        }
                     }
+                    // TODO bounds, maxBounds
                 };
             }
 
-            static convertZoomMode(enabled, mode) {
+            static get observers() {
+                return [
+                    "_onMapNeedsToBeRecreated(attributionControlVisible, zoomControlVisible, boxZoomEnabled, doubleClickZoomEnabled, doubleClickZoomMode, scrollWheelZoomEnabled, scrollWheelZoomMode)"
+                ];
+            }
+
+            static _convertZoomMode(enabled, mode) {
                 if (!enabled) {
                     return false;
                 } else if (mode === 'CENTER') {
@@ -88,20 +81,111 @@
             constructor() {
                 super();
                 this.layers = [];
+                this.map = null;
             }
 
             ready() {
                 super.ready();
+                this._createMap();
+            }
+
+            _onMapNeedsToBeRecreated(attributionControlVisible, zoomControlVisible, boxZoomEnabled, doubleClickZoomEnabled, doubleClickZoomMode, scrollWheelZoomEnabled, scrollWheelZoomMode) {
+                if (this.map !== null) {
+                    console.log("Recreating map");
+                    this._destroyMap();
+                    this._createMap();
+                }
+            }
+
+            _onMapClicked(e) {
+                const detail = {
+                    position: e.latLng
+                };
+                console.log(`Dispatching click event: ${JSON.stringify(detail)}`);
+                this.dispatchEvent(new CustomEvent('map-click', {
+                    detail: detail
+                }));
+            }
+
+            _onMapZoomed(e) {
+                this.zoom = this.map.getZoom();
+                const detail = {
+                    zoom: this.map.getZoom(),
+                    center: this.map.getCenter(),
+                    bounds: this.map.getBounds()
+                };
+                console.log(`Dispatching zoom event: ${JSON.stringify(detail)}`);
+                this.dispatchEvent(new CustomEvent('map-zoom', {
+                    detail: detail
+                }));
+
+            }
+
+            _onMapMoved(e) {
+                this.center = this.map.getCenter();
+                const detail = {
+                    center: this.map.getCenter(),
+                    bounds: this.map.getBounds()
+                };
+                console.log(`Dispatching move event: ${JSON.stringify(detail)}`);
+                this.dispatchEvent(new CustomEvent('map-move', {
+                    detail: detail
+                }));
+            }
+
+            _onMapResized(e) {
+                const detail = {
+                    oldSize: e.oldSize,
+                    newSize: e.newSize,
+                    center: this.map.getCenter(),
+                    bounds: this.map.getBounds()
+                };
+                console.log(`Dispatching resize event: ${JSON.stringify(detail)}`);
+                this.dispatchEvent(new CustomEvent('map-resize', {
+                    detail: detail
+                }));
+            }
+
+            _createMap() {
+                console.log("Creating map");
                 this.map = L.map(this.$.myMap, {
                     attributionControl: this.attributionControlVisible,
                     zoomControl: this.zoomControlVisible,
                     boxZoom: this.boxZoomEnabled,
-                    doubleClickZoom: LeafletElement.convertZoomMode(this.doubleClickZoomEnabled, this.doubleClickZoomMode),
-                    scrollWheelZoom: LeafletElement.convertZoomMode(this.scrollWheelZoomEnabled, this.scrollWheelZoomMode),
+                    doubleClickZoom: LeafletElement._convertZoomMode(this.doubleClickZoomEnabled, this.doubleClickZoomMode),
+                    scrollWheelZoom: LeafletElement._convertZoomMode(this.scrollWheelZoomEnabled, this.scrollWheelZoomMode),
                     dragging: this.draggingEnabled,
                     center: this.center,
                     zoom: this.zoom
                 });
+                this.layers.forEach(layer => {
+                    console.log(`Adding existing layer ${layer} to map`);
+                    layer.addTo(this.map);
+                });
+                this.map.on('click', this._onMapClicked.bind(this));
+                this.map.on('zoomend', this._onMapZoomed.bind(this));
+                this.map.on('moveend', this._onMapMoved.bind(this));
+                this.map.on('resize', this._onMapResized.bind(this));
+            }
+
+            _destroyMap() {
+                this.layers.forEach(layer => {
+                    console.log(`Removing existing layer ${layer} from map`);
+                    layer.remove();
+                });
+                if (this.map !== null) {
+                    console.log("Destroying map");
+                    this.map.remove();
+                    this.map = null;
+                }
+            }
+
+            zoomIn() {
+                this.map.zoomIn();
+            }
+
+            zoomOut() {
+                this.map.zoomOut();
             }
 
             addTileLayer(templateUrl, options = {}) {
