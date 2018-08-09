@@ -3,6 +3,7 @@ package net.pkhapps.leaflet4flow.components;
 import com.vaadin.flow.component.*;
 import com.vaadin.flow.component.dependency.HtmlImport;
 import com.vaadin.flow.shared.Registration;
+import elemental.json.JsonObject;
 import org.geotools.geometry.DirectPosition2D;
 import org.opengis.geometry.DirectPosition;
 import org.opengis.geometry.Envelope;
@@ -19,6 +20,9 @@ import java.util.stream.Stream;
 @Tag("leaflet-element")
 @HtmlImport("bower_components/leaflet-element/leaflet-element.html")
 public class Leaflet extends Component implements HasSize {
+
+    private static final String EVENT_CLICK = "map-click";
+    private static final String EVENT_MOVE = "map-move";
 
     private final List<Layer<?>> layers = new ArrayList<>();
 
@@ -43,7 +47,12 @@ public class Leaflet extends Component implements HasSize {
             new DirectPosition2D(22.2995748, 60.4524144)); // Vaadin HQ coordinates ;-)
     private static final PropertyDescriptor<Integer, Integer> zoom
             = PropertyDescriptors.propertyWithDefault("zoom", 10);
-    // TODO maxBounds and other properties
+    private static final PropertyDescriptor<Envelope, Envelope> bounds
+            = new EnvelopePropertyDescriptor("bounds");
+    private static final PropertyDescriptor<Envelope, Envelope> maxBounds
+            = new EnvelopePropertyDescriptor("maxBounds");
+
+    // TODO Improve layer API. This is not good.
 
     public <L extends Layer<L>> void addLayer(L layer) {
         Objects.requireNonNull(layer, "layer must not be null");
@@ -71,7 +80,7 @@ public class Leaflet extends Component implements HasSize {
      * @param attributionControlVisible true to show the attribution control, false to hide it.
      */
     public void setAttributionControlVisible(boolean attributionControlVisible) {
-        this.attributionControlVisible.set(this, attributionControlVisible);
+        Leaflet.attributionControlVisible.set(this, attributionControlVisible);
     }
 
     /**
@@ -88,7 +97,7 @@ public class Leaflet extends Component implements HasSize {
      * @param zoomControlVisible true to show the zoom control, false to hide it.
      */
     public void setZoomControlVisible(boolean zoomControlVisible) {
-        this.zoomControlVisible.set(this, zoomControlVisible);
+        Leaflet.zoomControlVisible.set(this, zoomControlVisible);
     }
 
     /**
@@ -106,7 +115,7 @@ public class Leaflet extends Component implements HasSize {
      * @param boxZoomEnabled true to enable box zoom, false to disable it.
      */
     public void setBoxZoomEnabled(boolean boxZoomEnabled) {
-        this.boxZoomEnabled.set(this, boxZoomEnabled);
+        Leaflet.boxZoomEnabled.set(this, boxZoomEnabled);
     }
 
     /**
@@ -127,7 +136,7 @@ public class Leaflet extends Component implements HasSize {
      * @see #setDoubleClickZoomMode(ZoomMode)
      */
     public void setDoubleClickZoomEnabled(boolean doubleClickZoomEnabled) {
-        this.doubleClickZoomEnabled.set(this, doubleClickZoomEnabled);
+        Leaflet.doubleClickZoomEnabled.set(this, doubleClickZoomEnabled);
     }
 
     /**
@@ -150,7 +159,7 @@ public class Leaflet extends Component implements HasSize {
      * @see #setDoubleClickZoomEnabled(boolean)
      */
     public void setDoubleClickZoomMode(ZoomMode doubleClickZoomMode) {
-        this.doubleClickZoomMode.set(this, doubleClickZoomMode);
+        Leaflet.doubleClickZoomMode.set(this, doubleClickZoomMode);
     }
 
     /**
@@ -170,7 +179,7 @@ public class Leaflet extends Component implements HasSize {
      * @see #setScrollWheelZoomMode(ZoomMode)
      */
     public void setScrollWheelZoomEnabled(boolean scrollWheelZoomEnabled) {
-        this.scrollWheelZoomEnabled.set(this, scrollWheelZoomEnabled);
+        Leaflet.scrollWheelZoomEnabled.set(this, scrollWheelZoomEnabled);
     }
 
     /**
@@ -193,7 +202,7 @@ public class Leaflet extends Component implements HasSize {
      * @see #setScrollWheelZoomEnabled(boolean)
      */
     public void setScrollWheelZoomMode(ZoomMode scrollWheelZoomMode) {
-        this.scrollWheelZoomMode.set(this, scrollWheelZoomMode);
+        Leaflet.scrollWheelZoomMode.set(this, scrollWheelZoomMode);
     }
 
     /**
@@ -210,69 +219,86 @@ public class Leaflet extends Component implements HasSize {
      * @param draggingEnabled true to enable dragging, false to disable it.
      */
     public void setDraggingEnabled(boolean draggingEnabled) {
-        this.draggingEnabled.set(this, draggingEnabled);
+        Leaflet.draggingEnabled.set(this, draggingEnabled);
     }
 
     /**
-     * @return
+     * Returns the coordinates of the center of the map.
      */
     @Nonnull
+    @Synchronize(EVENT_MOVE)
     public DirectPosition getCenter() {
         return center.get(this);
     }
 
     /**
-     * @param center
+     * Moves the map so that it is centered over the given coordinates.
+     *
+     * @param center the new center position, or {@code null} to revert to the default center position.
      */
     public void setCenter(DirectPosition center) {
-        this.center.set(this, center);
+        // TODO What happens if the max bounds do not allow this operation?
+        Leaflet.center.set(this, center);
     }
 
     /**
-     * @return
+     * Returns the zoom level of the map.
+     *
+     * @see #getMaxZoom()
+     * @see #getMinZoom()
      */
+    @Synchronize(EVENT_MOVE)
     public int getZoom() {
         return zoom.get(this);
     }
 
     /**
-     * @param zoom
+     * Sets the zoom level of the map.
+     *
+     * @param zoom the zoom level.
+     * @see #getMaxZoom()
+     * @see #getMinZoom()
      */
     public void setZoom(int zoom) {
-        this.zoom.set(this, zoom);
+        // TODO What happens if this is set to something outside the max/min?
+        Leaflet.zoom.set(this, zoom);
     }
 
     /**
-     * @param center
-     * @param zoom
-     */
-    public void setCenterAndZoom(DirectPosition center, int zoom) {
-        // TODO Implement me!
-    }
-
-    /**
+     * Moves the map to the specified {@code center} while changing the zoom level. This is a way of calling
+     * {@link #setZoom(int)} and {@link #setCenter(DirectPosition)} in one call.
      *
+     * @param center the new center position, never {@code null}.
+     * @param zoom   the new zoom level.
+     */
+    public void setCenterAndZoom(@Nonnull DirectPosition center, int zoom) {
+        // TODO Implement me!
+        throw new UnsupportedOperationException("This is not implemented yet");
+    }
+
+    /**
+     * Zooms in to the next zoom level. If the map is already at the highest level, nothing happens.
      */
     public void zoomIn() {
         getElement().callFunction("zoomIn");
     }
 
     /**
-     *
+     * Zooms out to the next zoom level. If the map is already at the lowest level, nothing happens.
      */
     public void zoomOut() {
         getElement().callFunction("zoomOut");
     }
 
     /**
-     * @return
+     * Returns the maximum zoom level. This is calculated based on the map layers.
      */
     public int getMaxZoom() {
         return 0; // TODO Implement me!
     }
 
     /**
-     * @return
+     * Returns the minimum zoom level. This is calculated based on the map layers.
      */
     public int getMinZoom() {
         return 0; // TODO Implement me!
@@ -282,22 +308,24 @@ public class Leaflet extends Component implements HasSize {
      * @return
      */
     public Envelope getMaxBounds() {
-        return null; // TODO Implement me!
+        return maxBounds.get(this);
     }
 
     /**
-     * @param envelope
+     * @param maxBounds
      */
-    public void setMaxBounds(Envelope envelope) {
-        // TODO Implement me!
+    public void setMaxBounds(Envelope maxBounds) {
+        Leaflet.maxBounds.set(this, maxBounds);
     }
 
     /**
-     * @return
+     * TODO Document me
+     *
+     * @return the bounds or {@code null} if this information is not available.
      */
-    public Envelope getVisibleBounds() {
-        return null;
-        // TODO Implement me!
+    @Synchronize(EVENT_MOVE)
+    public Envelope getBounds() {
+        return bounds.get(this);
     }
 
     /**
@@ -315,31 +343,18 @@ public class Leaflet extends Component implements HasSize {
 
     /**
      * Registers a listener to be notified when the user has moved the map (i.e. changed the {@link #getCenter() center}
-     * either programmatically or by dragging).
+     * either programmatically or by dragging, resizing or zooming).
      *
      * @param moveEventListener the listener, never {@code null}.
      * @return a registration handle for the listener, never {@code null}.
      * @see #setCenter(DirectPosition)
+     * @see #setZoom(int)
      * @see MoveEvent
      */
     @Nonnull
     public Registration addMoveEventListener(@Nonnull ComponentEventListener<MoveEvent> moveEventListener) {
         Objects.requireNonNull(moveEventListener);
         return addListener(MoveEvent.class, moveEventListener);
-    }
-
-    /**
-     * Registers a listener to be notified when the user has zoomed in or out.
-     *
-     * @param zoomEventListener the listener, never {@code null}.
-     * @return a registration handle for the listener, never {@code null}.
-     * @see #setZoom(int)
-     * @see ZoomEvent
-     */
-    @Nonnull
-    public Registration addZoomEventListener(@Nonnull ComponentEventListener<ZoomEvent> zoomEventListener) {
-        Objects.requireNonNull(zoomEventListener);
-        return addListener(ZoomEvent.class, zoomEventListener);
     }
 
     /**
@@ -357,12 +372,16 @@ public class Leaflet extends Component implements HasSize {
     }
 
     /**
-     * TODO Document me!
+     * Event fired when the map is clicked or tapped. Please note, that at the moment, double clicking the map will
+     * result in two click events being fired (see
+     * <a href="https://github.com/Leaflet/Leaflet/issues/108">Leaflet issue 108</a>).
+     * <p>
+     * TODO Fix double click generating two single click events
      */
-    @DomEvent("map-click")
+    @DomEvent(EVENT_CLICK)
     public static class ClickEvent extends ComponentEvent<Leaflet> {
 
-
+        private final DirectPosition position;
 
         /**
          * Creates a new event using the given source and indicator whether the
@@ -370,46 +389,83 @@ public class Leaflet extends Component implements HasSize {
          *
          * @param source     the source component
          * @param fromClient <code>true</code> if the event originated from the client
+         * @param position   JSON containing the position of the click event, will be converted using a {@link DirectPositionConverter}.
          */
-        public ClickEvent(Leaflet source, boolean fromClient) {
+        public ClickEvent(Leaflet source, boolean fromClient, @EventData("event.detail.position") JsonObject position) {
             super(source, fromClient);
+            this.position = new DirectPositionConverter().fromJson(position);
         }
-        // TODO Implement me
+
+        /**
+         * Returns the geographical position where the map was clicked.
+         */
+        @Nonnull
+        public DirectPosition getPosition() {
+            return position;
+        }
     }
 
     /**
-     * TODO Document me!
+     * Event fired when the map is moved in some way (by changing the center coordinates, resizing the map or zooming
+     * in or out).
      */
-    @DomEvent("map-move")
+    @DomEvent(EVENT_MOVE)
     public static class MoveEvent extends ComponentEvent<Leaflet> {
-        /**
-         * Creates a new event using the given source and indicator whether the
-         * event originated from the client side or the server side.
-         *
-         * @param source     the source component
-         * @param fromClient <code>true</code> if the event originated from the client
-         */
-        public MoveEvent(Leaflet source, boolean fromClient) {
-            super(source, fromClient);
-        }
-        // TODO Implement me
-    }
 
-    /**
-     * TODO Document me!
-     */
-    @DomEvent("map-zoom")
-    public static class ZoomEvent extends ComponentEvent<Leaflet> {
+        private final DirectPosition center;
+        private final Envelope bounds;
+        private final int zoom;
+
         /**
          * Creates a new event using the given source and indicator whether the
          * event originated from the client side or the server side.
          *
          * @param source     the source component
          * @param fromClient <code>true</code> if the event originated from the client
+         * @param center     JSON containing the center coordinates of the map, will be converted using a {@link DirectPositionConverter}.
+         * @param bounds     JSON containing the bounds of the map, will be converted using a {@link EnvelopeConverter}.
+         * @param zoom       the zoom level of the map.
          */
-        public ZoomEvent(Leaflet source, boolean fromClient) {
+        public MoveEvent(Leaflet source, boolean fromClient,
+                         @EventData("event.detail.center") JsonObject center,
+                         @EventData("event.detail.bounds") JsonObject bounds,
+                         @EventData("event.detail.zoom") int zoom) {
             super(source, fromClient);
+            this.center = new DirectPositionConverter().fromJson(center);
+            this.bounds = new EnvelopeConverter().fromJson(bounds);
+            this.zoom = zoom;
+            // TODO fromClient will always be true even when the move was originated from the server.
+            // This is because the server side move will cause the client side map to change, which will fire a
+            // client side event, which in turn is propagated back to the server. This needs to be fixed at some point.
         }
-        // TODO Implement me
+
+        /**
+         * Returns the current center coordinates of the map.
+         *
+         * @see Leaflet#getCenter()
+         */
+        @Nonnull
+        public DirectPosition getCenter() {
+            return center;
+        }
+
+        /**
+         * Returns the current bounds of the map.
+         *
+         * @see Leaflet#getBounds()
+         */
+        @Nonnull
+        public Envelope getBounds() {
+            return bounds;
+        }
+
+        /**
+         * Returns the current zoom level of the map.
+         *
+         * @see Leaflet#getZoom()
+         */
+        public int getZoom() {
+            return zoom;
+        }
     }
 }

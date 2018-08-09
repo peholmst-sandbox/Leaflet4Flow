@@ -10,15 +10,17 @@ import javax.annotation.Nonnull;
 import java.util.Objects;
 
 /**
- * TODO Document me
+ * Converter that converts between {@link Envelope} and a JSON-format that Leaflet understands. It is assumed that
+ * the {@link Envelope#getLowerCorner() lower corner} is the south-west corner and the
+ * {@link Envelope#getUpperCorner() upper corner} is the north-east corner. The {@link DirectPositionConverter} is
+ * used to convert the corner positions.
  */
-public class EnvelopeConverter {
+class EnvelopeConverter {
 
     private final DirectPositionConverter directPositionConverter = new DirectPositionConverter();
 
     /**
-     * @param envelope
-     * @return
+     * Converts the given {@link Envelope} to a JSON array {@code [[lower lat, lower lng], [upper lat, upper lng]]}.
      */
     @Nonnull
     public JsonArray toJson(@Nonnull Envelope envelope) {
@@ -33,11 +35,10 @@ public class EnvelopeConverter {
     }
 
     /**
-     * @param jsonObject
-     * @return
+     * Converts the given JSON object to an {@link Envelope2D}.
      */
     @Nonnull
-    public Envelope fromJson(@Nonnull JsonObject jsonObject) {
+    public Envelope2D fromJson(@Nonnull JsonObject jsonObject) {
         Objects.requireNonNull(jsonObject);
         var southWest = jsonObject.getObject("_southWest");
         var northEast = jsonObject.getObject("_northEast");

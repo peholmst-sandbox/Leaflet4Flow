@@ -31,9 +31,9 @@
                     zoomControlVisible: {type: Boolean, value: true},
                     boxZoomEnabled: {type: Boolean, value: true},
                     doubleClickZoomEnabled: {type: Boolean, value: true},
-                    doubleClickZoomMode: {type: String, value: "POINTER"},
+                    doubleClickZoomMode: {type: String, value: 'POINTER'},
                     scrollWheelZoomEnabled: {type: Boolean, value: true},
-                    scrollWheelZoomMode: {type: String, value: "POINTER"},
+                    scrollWheelZoomMode: {type: String, value: 'POINTER'},
                     draggingEnabled: {type: Boolean, value: true},
                     center: {
                         type: Object,
@@ -57,14 +57,23 @@
                                 this.map.setZoom(newValue);
                             }
                         }
+                    },
+                    bounds: {type: Object, readOnly: true},
+                    maxBounds: {
+                        type: Object,
+                        observer(newValue, oldValue) {
+                            if (this.map !== null && !LeafletElement._equalOrNull(newValue, this.map.getMaxBounds())) {
+                                console.log(`Changing maxBounds to ${JSON.stringify(newValue)}`);
+                                this.map.setMaxBounds(newValue);
+                            }
+                        }
                     }
-                    // TODO bounds, maxBounds
                 };
             }
 
             static get observers() {
                 return [
-                    "_onMapNeedsToBeRecreated(attributionControlVisible, zoomControlVisible, boxZoomEnabled, doubleClickZoomEnabled, doubleClickZoomMode, scrollWheelZoomEnabled, scrollWheelZoomMode)"
+                    '_onMapNeedsToBeRecreated(attributionControlVisible, zoomControlVisible, boxZoomEnabled, doubleClickZoomEnabled, doubleClickZoomMode, scrollWheelZoomEnabled, scrollWheelZoomMode)'
                 ];
             }
 
@@ -75,6 +84,14 @@
                     return 'center';
                 } else {
                     return true;
+                }
+            }
+
+            static _equalOrNull(first, second) {
+                if (first == null) {
+                    return second == null;
+                } else {
+                    return second !== null && first.equals(second);
                 }
             }
 
@@ -91,15 +108,16 @@
 
             _onMapNeedsToBeRecreated(attributionControlVisible, zoomControlVisible, boxZoomEnabled, doubleClickZoomEnabled, doubleClickZoomMode, scrollWheelZoomEnabled, scrollWheelZoomMode) {
                 if (this.map !== null) {
-                    console.log("Recreating map");
+                    console.log('Recreating map');
                     this._destroyMap();
                     this._createMap();
                 }
             }
 
             _onMapClicked(e) {
+                console.log(e);
                 const detail = {
-                    position: e.latLng
+                    position: e.latlng
                 };
                 console.log(`Dispatching click event: ${JSON.stringify(detail)}`);
                 this.dispatchEvent(new CustomEvent('map-click', {
@@ -107,23 +125,13 @@
                 }));
             }
 
-            _onMapZoomed(e) {
+            _onMapMoved(e) {
+                console.log(e);
                 this.zoom = this.map.getZoom();
+                this.center = this.map.getCenter();
+                this._setBounds(this.map.getBounds());
                 const detail = {
                     zoom: this.map.getZoom(),
-                    center: this.map.getCenter(),
-                    bounds: this.map.getBounds()
-                };
-                console.log(`Dispatching zoom event: ${JSON.stringify(detail)}`);
-                this.dispatchEvent(new CustomEvent('map-zoom', {
-                    detail: detail
-                }));
-
-            }
-
-            _onMapMoved(e) {
-                this.center = this.map.getCenter();
-                const detail = {
                     center: this.map.getCenter(),
                     bounds: this.map.getBounds()
                 };
@@ -133,21 +141,8 @@
                 }));
             }
 
-            _onMapResized(e) {
-                const detail = {
-                    oldSize: e.oldSize,
-                    newSize: e.newSize,
-                    center: this.map.getCenter(),
-                    bounds: this.map.getBounds()
-                };
-                console.log(`Dispatching resize event: ${JSON.stringify(detail)}`);
-                this.dispatchEvent(new CustomEvent('map-resize', {
-                    detail: detail
-                }));
-            }
-
             _createMap() {
-                console.log("Creating map");
+                console.log('Creating map');
                 this.map = L.map(this.$.myMap, {
                     attributionControl: this.attributionControlVisible,
                     zoomControl: this.zoomControlVisible,
@@ -156,16 +151,16 @@
                     scrollWheelZoom: LeafletElement._convertZoomMode(this.scrollWheelZoomEnabled, this.scrollWheelZoomMode),
                     dragging: this.draggingEnabled,
                     center: this.center,
-                    zoom: this.zoom
+                    zoom: this.zoom,
+                    maxBounds: this.maxBounds
                 });
                 this.layers.forEach(layer => {
                     console.log(`Adding existing layer ${layer} to map`);
                     layer.addTo(this.map);
                 });
+                this._setBounds(this.map.getBounds());
                 this.map.on('click', this._onMapClicked.bind(this));
-                this.map.on('zoomend', this._onMapZoomed.bind(this));
-                this.map.on('moveend', this._onMapMoved.bind(this));
-                this.map.on('resize', this._onMapResized.bind(this));
+                this.map.on('moveend', this._onMapMoved.bind(this)); // Will also be called when zoom is changed or when the map is resized
             }
 
             _destroyMap() {
@@ -174,7 +169,7 @@
                     layer.remove();
                 });
                 if (this.map !== null) {
-                    console.log("Destroying map");
+                    console.log('Destroying map');
                     this.map.remove();
                     this.map = null;
                 }
@@ -189,7 +184,7 @@
             }
 
             addTileLayer(templateUrl, options = {}) {
-                console.log("Adding tile layer " + templateUrl);
+                console.log('Adding tile layer ' + templateUrl);
                 var layer = L.tileLayer(templateUrl, options);
                 this.layers.push(layer);
                 layer.addTo(this.map);

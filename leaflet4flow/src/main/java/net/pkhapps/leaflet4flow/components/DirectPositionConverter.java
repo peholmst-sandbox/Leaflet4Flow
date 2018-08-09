@@ -10,13 +10,17 @@ import javax.annotation.Nonnull;
 import java.util.Objects;
 
 /**
- * TODO Document me
+ * Converter that converts between {@link DirectPosition} and a JSON-format that Leaflet understands. It is assumed
+ * that the 0-ordinate of the position is the longitude coordinate and the 1-ordinate is the latitude coordinate.
+ * Altitude is ignored completely even though it is supported both by {@link DirectPosition} and Leaflet.
+ * The {@link DirectPosition#getCoordinateReferenceSystem() CRS} is also ignored.
+ *
+ * @see EnvelopeConverter
  */
-public class DirectPositionConverter {
+class DirectPositionConverter {
 
     /**
-     * @param directPosition
-     * @return
+     * Converts the given {@code directPosition} to a JSON object.
      */
     @Nonnull
     public JsonObject toJson(@Nonnull DirectPosition directPosition) {
@@ -31,8 +35,7 @@ public class DirectPositionConverter {
     }
 
     /**
-     * @param directPosition
-     * @return
+     * Converts the given {@code directPosition} to a JSON array {@code [lat, lng]}.
      */
     @Nonnull
     public JsonArray toJsonArray(@Nonnull DirectPosition directPosition) {
@@ -47,8 +50,7 @@ public class DirectPositionConverter {
     }
 
     /**
-     * @param jsonObject
-     * @return
+     * Converts the given JSON object to a {@link DirectPosition2D}.
      */
     @Nonnull
     public DirectPosition2D fromJson(@Nonnull JsonObject jsonObject) {

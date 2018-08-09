@@ -10,13 +10,9 @@ import java.util.Objects;
 
 /**
  * {@link PropertyDescriptor}-implementation that works with {@link DirectPosition}s and serializes them to
- * JSON objects with {@code lng} and {@code lat} properties. This descriptor assumes that longitude is
- * {@link DirectPosition#getOrdinate(int) ordinate 0} and latitude is
- * {@link DirectPosition#getOrdinate(int) ordinate 1}.
- * <p>
- * Altitude is ignored completely even though it is supported
- * both by {@link DirectPosition} and Leaflet. The {@link DirectPosition#getCoordinateReferenceSystem() CRS} is also
- * ignored.
+ * JSON objects using a {@link DirectPositionConverter}. Null values are converted to a default value, that
+ * must not be null. The default value is also passed down to the element (i.e. the property is not removed from the DOM
+ * when the default value is set).
  */
 class DirectPositionPropertyDescriptor extends AbstractPropertyDescriptor<DirectPosition, DirectPosition> {
 

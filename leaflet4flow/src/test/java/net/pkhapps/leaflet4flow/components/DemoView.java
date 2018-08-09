@@ -1,11 +1,12 @@
 package net.pkhapps.leaflet4flow.components;
 
-import com.vaadin.flow.component.Text;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.checkbox.Checkbox;
+import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.Route;
+import org.geotools.geometry.DirectPosition2D;
 
 @Route("")
 public class DemoView extends VerticalLayout {
@@ -27,21 +28,30 @@ public class DemoView extends VerticalLayout {
         var zoomControl = new Checkbox("Zoom Control", leaflet.isZoomControlVisible());
         zoomControl.addValueChangeListener(event -> leaflet.setZoomControlVisible(event.getValue()));
 
-        // TODO Button for manually setting the center to somewhere else
+        // TODO Control for setting max bounds
+
         var resetCenter = new Button("Reset Center", event -> leaflet.setCenter(null));
+        var changeCenter = new Button("Change Center", event -> leaflet.setCenter(new DirectPosition2D(22.3010355, 60.3067342)));
         var zoomIn = new Button("Zoom in", event -> leaflet.zoomIn());
         var zoomOut = new Button("Zoom out", event -> leaflet.zoomOut());
 
-        add(new HorizontalLayout(attributionControl, zoomControl, resetCenter, zoomIn, zoomOut));
+        add(new HorizontalLayout(attributionControl, zoomControl, resetCenter, changeCenter, zoomIn, zoomOut));
 
-        var centerCoordinates = new Text("Center: N/A");
-        leaflet.addMoveEventListener(event -> centerCoordinates.setText("Center: " + leaflet.getCenter()));
+        var centerCoordinates = new Span("Center: N/A");
+        var zoomLevel = new Span("Zoom: N/A");
+        var bounds = new Span("Bounds: N/A");
+        add(centerCoordinates, zoomLevel, bounds);
 
-        var zoomLevel = new Text("Zoom: N/A");
-        leaflet.addZoomEventListener(event -> zoomLevel.setText("Zoom: " + leaflet.getZoom()));
+        // Test the properties (should have been updated when the event is fired)
+        leaflet.addMoveEventListener(event -> {
+            centerCoordinates.setText("Center: " + leaflet.getCenter());
+            zoomLevel.setText("Zoom: " + leaflet.getZoom());
+            bounds.setText("Bounds: " + leaflet.getBounds());
+        });
 
-        add(new HorizontalLayout(centerCoordinates, zoomLevel));
-
-        // TODO Visible bounds, click listener
+        // Test the events (should contain the same information as the updated properties)
+        leaflet.addClickEventListener(event -> System.out.println("The map was clicked at " + event.getPosition()));
+        leaflet.addMoveEventListener(event -> System.out.println("The map was moved, center is " + event.getCenter()
+                + ", bounds are " + event.getBounds() + ", zoom is " + event.getZoom() + ", fromClient is " + event.isFromClient()));
     }
 }
