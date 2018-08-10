@@ -9,10 +9,7 @@ import org.opengis.geometry.DirectPosition;
 import org.opengis.geometry.Envelope;
 
 import javax.annotation.Nonnull;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Stream;
 
 /**
@@ -28,6 +25,7 @@ public class LeafletMap extends Component implements HasSize {
     private final List<Layer<?>> layers = new ArrayList<>();
 
     private MarkerProvider markerProvider;
+    private transient MarkerProvider.MarkerView markers;
 
     private static final PropertyDescriptor<Boolean, Boolean> attributionControlVisible
             = new BooleanPropertyDescriptor("attributionControlVisible", true);
@@ -87,9 +85,30 @@ public class LeafletMap extends Component implements HasSize {
         this.markerProvider = markerProvider;
     }
 
-    private void updateMarkers() {
+    private void updateMarkers(@Nonnull Envelope bounds) {
         // TODO continue here
 
+        // If there is no marker view from before, create a new one, get the markers and add them to the map
+        // If there is a marker view from before, compare it to the new one. Add any markers missing from the old one,
+        // remove any markers that are missing from the new one.
+        MarkerProvider.MarkerView markerView = markerProvider.getMarkerView(bounds);
+
+        markerView.addMarkersAddedToViewListener(this::addMarkersToMap);
+        markerView.addMarkersRemovedFromViewListener(this::removeMarkersFromMap);
+        markerView.addMarkersUpdatedInViewListener(this::updateMarkersOnMap);
+
+    }
+
+    private void addMarkersToMap(Iterable marker) {
+        // TODO Implement me!
+    }
+
+    private void removeMarkersFromMap(Iterable<Marker> markers) {
+        // TODO Implement me!
+    }
+
+    private void updateMarkersOnMap(Iterable<Marker> markers) {
+        // TODO Implement me!
     }
 
     private Optional<Envelope> getMarkerViewBounds() {

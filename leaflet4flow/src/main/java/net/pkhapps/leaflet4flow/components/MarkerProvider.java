@@ -38,24 +38,33 @@ public interface MarkerProvider extends Serializable {
         Envelope getBounds();
 
         /**
-         * Adds a listener to be notified whenever a marker is added to this view, either by creating the marker or
-         * changing its position so that is moves inside the {@link #getBounds() bounds} of this view.
+         * Adds a listener to be notified whenever markers are added to this view, either by creating or
+         * changing their positions so that they move inside the {@link #getBounds() bounds} of this view.
          *
          * @param listener the listener to add, never {@code null}.
          * @return a registration handle for the listener.
          */
         @Nonnull
-        Registration addMarkerAddedToViewListener(@Nonnull SerializableConsumer<Marker> listener);
+        Registration addMarkersAddedToViewListener(@Nonnull SerializableConsumer<Iterable<Marker>> listener);
 
         /**
-         * Adds a listener to be notified whenever a marker is removed from this view, either by deleting the marker
-         * or changing its position so that it moves outside the {@link #getBounds() bounds} of this view.
+         * Adds a listener to be notified whenever markers are removed from this view, either by deleting
+         * or changing their positions so that they move outside the {@link #getBounds() bounds} of this view.
          *
          * @param listener the listener to add, never {@code null}.
          * @return a registration handle for the listener.
          */
         @Nonnull
-        Registration addMarkerRemovedFromViewListener(@Nonnull SerializableConsumer<Marker> listener);
+        Registration addMarkersRemovedFromViewListener(@Nonnull SerializableConsumer<Iterable<Marker>> listener);
+
+        /**
+         * Adds a listener to be notified whenever markers are updated somehow but remain in the view.
+         *
+         * @param listener the listener to add, never {@code null}.
+         * @return a registration handle for the listener.
+         */
+        @Nonnull
+        Registration addMarkersUpdatedInViewListener(@Nonnull SerializableConsumer<Iterable<Marker>> listener);
 
         /**
          * Returns the markers currently visible in this view. The zoom level is provided so that the view
