@@ -62,7 +62,7 @@
                     maxBounds: {
                         type: Object,
                         observer(newValue, oldValue) {
-                            if (this.map !== null && !LeafletElement._equalOrNull(newValue, this.map.getMaxBounds())) {
+                            if (this.map !== null) {
                                 console.log(`Changing maxBounds to ${JSON.stringify(newValue)}`);
                                 this.map.setMaxBounds(newValue);
                             }
@@ -86,15 +86,7 @@
                     return true;
                 }
             }
-
-            static _equalOrNull(first, second) {
-                if (first == null) {
-                    return second == null;
-                } else {
-                    return second !== null && first.equals(second);
-                }
-            }
-
+            
             constructor() {
                 super();
                 this.layers = [];

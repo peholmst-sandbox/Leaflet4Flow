@@ -12,6 +12,7 @@ import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 /**
@@ -19,12 +20,14 @@ import java.util.stream.Stream;
  */
 @Tag("leaflet-element")
 @HtmlImport("bower_components/leaflet-element/leaflet-element.html")
-public class Leaflet extends Component implements HasSize {
+public class LeafletMap extends Component implements HasSize {
 
     private static final String EVENT_CLICK = "map-click";
     private static final String EVENT_MOVE = "map-move";
 
     private final List<Layer<?>> layers = new ArrayList<>();
+
+    private MarkerProvider markerProvider;
 
     private static final PropertyDescriptor<Boolean, Boolean> attributionControlVisible
             = new BooleanPropertyDescriptor("attributionControlVisible", true);
@@ -67,6 +70,40 @@ public class Leaflet extends Component implements HasSize {
     }
 
     /**
+     * Returns the marker provider of the map.
+     *
+     * @return the marker provider or {@code null} if none has been set.
+     */
+    public MarkerProvider getMarkerProvider() {
+        return markerProvider;
+    }
+
+    /**
+     * Sets the marker provider of the map.
+     *
+     * @param markerProvider the marker provider or {@code null} to remove all markers.
+     */
+    public void setMarkerProvider(MarkerProvider markerProvider) {
+        this.markerProvider = markerProvider;
+    }
+
+    private void updateMarkers() {
+        // TODO continue here
+
+    }
+
+    private Optional<Envelope> getMarkerViewBounds() {
+        var mapBounds = getBounds();
+        if (mapBounds == null) {
+            return Optional.empty();
+        }
+        var height = EnvelopeUtils.getHeight(mapBounds);
+        var width = EnvelopeUtils.getWidth(mapBounds);
+
+        return Optional.of(EnvelopeUtils.resize(mapBounds, -width, -height, width, height));
+    }
+
+    /**
      * Returns whether the attribution control is visible on the map (default is true).
      */
     public boolean isAttributionControlVisible() {
@@ -80,7 +117,7 @@ public class Leaflet extends Component implements HasSize {
      * @param attributionControlVisible true to show the attribution control, false to hide it.
      */
     public void setAttributionControlVisible(boolean attributionControlVisible) {
-        Leaflet.attributionControlVisible.set(this, attributionControlVisible);
+        LeafletMap.attributionControlVisible.set(this, attributionControlVisible);
     }
 
     /**
@@ -97,7 +134,7 @@ public class Leaflet extends Component implements HasSize {
      * @param zoomControlVisible true to show the zoom control, false to hide it.
      */
     public void setZoomControlVisible(boolean zoomControlVisible) {
-        Leaflet.zoomControlVisible.set(this, zoomControlVisible);
+        LeafletMap.zoomControlVisible.set(this, zoomControlVisible);
     }
 
     /**
@@ -115,7 +152,7 @@ public class Leaflet extends Component implements HasSize {
      * @param boxZoomEnabled true to enable box zoom, false to disable it.
      */
     public void setBoxZoomEnabled(boolean boxZoomEnabled) {
-        Leaflet.boxZoomEnabled.set(this, boxZoomEnabled);
+        LeafletMap.boxZoomEnabled.set(this, boxZoomEnabled);
     }
 
     /**
@@ -136,7 +173,7 @@ public class Leaflet extends Component implements HasSize {
      * @see #setDoubleClickZoomMode(ZoomMode)
      */
     public void setDoubleClickZoomEnabled(boolean doubleClickZoomEnabled) {
-        Leaflet.doubleClickZoomEnabled.set(this, doubleClickZoomEnabled);
+        LeafletMap.doubleClickZoomEnabled.set(this, doubleClickZoomEnabled);
     }
 
     /**
@@ -159,7 +196,7 @@ public class Leaflet extends Component implements HasSize {
      * @see #setDoubleClickZoomEnabled(boolean)
      */
     public void setDoubleClickZoomMode(ZoomMode doubleClickZoomMode) {
-        Leaflet.doubleClickZoomMode.set(this, doubleClickZoomMode);
+        LeafletMap.doubleClickZoomMode.set(this, doubleClickZoomMode);
     }
 
     /**
@@ -179,7 +216,7 @@ public class Leaflet extends Component implements HasSize {
      * @see #setScrollWheelZoomMode(ZoomMode)
      */
     public void setScrollWheelZoomEnabled(boolean scrollWheelZoomEnabled) {
-        Leaflet.scrollWheelZoomEnabled.set(this, scrollWheelZoomEnabled);
+        LeafletMap.scrollWheelZoomEnabled.set(this, scrollWheelZoomEnabled);
     }
 
     /**
@@ -202,7 +239,7 @@ public class Leaflet extends Component implements HasSize {
      * @see #setScrollWheelZoomEnabled(boolean)
      */
     public void setScrollWheelZoomMode(ZoomMode scrollWheelZoomMode) {
-        Leaflet.scrollWheelZoomMode.set(this, scrollWheelZoomMode);
+        LeafletMap.scrollWheelZoomMode.set(this, scrollWheelZoomMode);
     }
 
     /**
@@ -219,7 +256,7 @@ public class Leaflet extends Component implements HasSize {
      * @param draggingEnabled true to enable dragging, false to disable it.
      */
     public void setDraggingEnabled(boolean draggingEnabled) {
-        Leaflet.draggingEnabled.set(this, draggingEnabled);
+        LeafletMap.draggingEnabled.set(this, draggingEnabled);
     }
 
     /**
@@ -238,7 +275,7 @@ public class Leaflet extends Component implements HasSize {
      */
     public void setCenter(DirectPosition center) {
         // TODO What happens if the max bounds do not allow this operation?
-        Leaflet.center.set(this, center);
+        LeafletMap.center.set(this, center);
     }
 
     /**
@@ -261,7 +298,7 @@ public class Leaflet extends Component implements HasSize {
      */
     public void setZoom(int zoom) {
         // TODO What happens if this is set to something outside the max/min?
-        Leaflet.zoom.set(this, zoom);
+        LeafletMap.zoom.set(this, zoom);
     }
 
     /**
@@ -305,21 +342,24 @@ public class Leaflet extends Component implements HasSize {
     }
 
     /**
-     * @return
+     * Returns the maximum bounds of the map, or {@code null} if there are no bounds (the default).
      */
     public Envelope getMaxBounds() {
         return maxBounds.get(this);
     }
 
     /**
-     * @param maxBounds
+     * When set, the map restricts the view to the given geographical bounds, bouncing the user back if the user tries
+     * to pan outside the view.
+     *
+     * @param maxBounds the maximum bounds, or {@code null} to remove the bounds.
      */
     public void setMaxBounds(Envelope maxBounds) {
-        Leaflet.maxBounds.set(this, maxBounds);
+        LeafletMap.maxBounds.set(this, maxBounds);
     }
 
     /**
-     * TODO Document me
+     * Returns the geographical bounds currently visible in the map.
      *
      * @return the bounds or {@code null} if this information is not available.
      */
@@ -377,9 +417,10 @@ public class Leaflet extends Component implements HasSize {
      * <a href="https://github.com/Leaflet/Leaflet/issues/108">Leaflet issue 108</a>).
      * <p>
      * TODO Fix double click generating two single click events
+     * TODO Include info about which marker was clicked, if any
      */
     @DomEvent(EVENT_CLICK)
-    public static class ClickEvent extends ComponentEvent<Leaflet> {
+    public static class ClickEvent extends ComponentEvent<LeafletMap> {
 
         private final DirectPosition position;
 
@@ -391,7 +432,7 @@ public class Leaflet extends Component implements HasSize {
          * @param fromClient <code>true</code> if the event originated from the client
          * @param position   JSON containing the position of the click event, will be converted using a {@link DirectPositionConverter}.
          */
-        public ClickEvent(Leaflet source, boolean fromClient, @EventData("event.detail.position") JsonObject position) {
+        public ClickEvent(LeafletMap source, boolean fromClient, @EventData("event.detail.position") JsonObject position) {
             super(source, fromClient);
             this.position = new DirectPositionConverter().fromJson(position);
         }
@@ -410,7 +451,7 @@ public class Leaflet extends Component implements HasSize {
      * in or out).
      */
     @DomEvent(EVENT_MOVE)
-    public static class MoveEvent extends ComponentEvent<Leaflet> {
+    public static class MoveEvent extends ComponentEvent<LeafletMap> {
 
         private final DirectPosition center;
         private final Envelope bounds;
@@ -426,7 +467,7 @@ public class Leaflet extends Component implements HasSize {
          * @param bounds     JSON containing the bounds of the map, will be converted using a {@link EnvelopeConverter}.
          * @param zoom       the zoom level of the map.
          */
-        public MoveEvent(Leaflet source, boolean fromClient,
+        public MoveEvent(LeafletMap source, boolean fromClient,
                          @EventData("event.detail.center") JsonObject center,
                          @EventData("event.detail.bounds") JsonObject bounds,
                          @EventData("event.detail.zoom") int zoom) {
@@ -442,7 +483,7 @@ public class Leaflet extends Component implements HasSize {
         /**
          * Returns the current center coordinates of the map.
          *
-         * @see Leaflet#getCenter()
+         * @see LeafletMap#getCenter()
          */
         @Nonnull
         public DirectPosition getCenter() {
@@ -452,7 +493,7 @@ public class Leaflet extends Component implements HasSize {
         /**
          * Returns the current bounds of the map.
          *
-         * @see Leaflet#getBounds()
+         * @see LeafletMap#getBounds()
          */
         @Nonnull
         public Envelope getBounds() {
@@ -462,7 +503,7 @@ public class Leaflet extends Component implements HasSize {
         /**
          * Returns the current zoom level of the map.
          *
-         * @see Leaflet#getZoom()
+         * @see LeafletMap#getZoom()
          */
         public int getZoom() {
             return zoom;

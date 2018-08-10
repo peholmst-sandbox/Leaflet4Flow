@@ -19,6 +19,9 @@ import java.util.Objects;
  */
 class DirectPositionConverter {
 
+    static final int LAT_Y_ORDINATE = 1;
+    static final int LNG_X_ORDINATE = 0;
+
     /**
      * Converts the given {@code directPosition} to a JSON object.
      */
@@ -29,8 +32,8 @@ class DirectPositionConverter {
             throw new IllegalArgumentException("DirectPosition must have at least two dimensions");
         }
         var json = Json.createObject();
-        json.put("lng", directPosition.getOrdinate(0));
-        json.put("lat", directPosition.getOrdinate(1));
+        json.put("lng", directPosition.getOrdinate(LNG_X_ORDINATE));
+        json.put("lat", directPosition.getOrdinate(LAT_Y_ORDINATE));
         return json;
     }
 
@@ -44,8 +47,8 @@ class DirectPositionConverter {
             throw new IllegalArgumentException("DirectPosition must have at least two dimensions");
         }
         var json = Json.createArray();
-        json.set(0, directPosition.getOrdinate(1));
-        json.set(1, directPosition.getOrdinate(0));
+        json.set(0, directPosition.getOrdinate(LAT_Y_ORDINATE));
+        json.set(1, directPosition.getOrdinate(LNG_X_ORDINATE));
         return json;
     }
 
